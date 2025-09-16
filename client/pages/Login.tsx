@@ -32,7 +32,7 @@ export default function Login() {
     <div className="min-h-screen grid place-items-center bg-gradient-to-b from-background to-muted/30 p-4">
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader>
-          <CardTitle className="text-2xl font-extrabold tracking-tight">NIVARAN Admin</CardTitle>
+          <CardTitle className="text-2xl font-extrabold tracking-tight">NIVARAN</CardTitle>
           <CardDescription>Secure sign in for municipal officials</CardDescription>
         </CardHeader>
         <CardContent>
