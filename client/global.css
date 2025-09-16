@@ -99,6 +99,21 @@
   }
 }
 
+@layer utilities {
+  /* Glass surface utility for dialogs and panels */
+  .glass {
+    background: rgba(240, 248, 255, 0.66); /* light pastel blue */
+    backdrop-filter: blur(8px) saturate(120%);
+    -webkit-backdrop-filter: blur(8px) saturate(120%);
+    border: 1px solid rgba(255, 255, 255, 0.6);
+    box-shadow: 0 8px 30px rgba(16, 24, 40, 0.08);
+  }
+
+  .floating {
+    transform: translateY(-6px);
+  }
+}
+
 @layer base {
   * {
     @apply border-border;
@@ -106,5 +121,14 @@
 
   body {
     @apply bg-background text-foreground;
+  }
+
+  /* Make default card slightly elevated and subtle */
+  .card-glass {
+    background: rgba(255,255,255,0.7);
+    backdrop-filter: blur(6px) saturate(120%);
+    -webkit-backdrop-filter: blur(6px) saturate(120%);
+    border: 1px solid rgba(255,255,255,0.6);
+    box-shadow: 0 6px 18px rgba(16,24,40,0.06);
   }
 }
