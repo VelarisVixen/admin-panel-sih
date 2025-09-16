@@ -78,30 +78,57 @@ export function detectAndMergeDuplicates(issues: Issue[], options?: { maxKm?: nu
 
   const sorted = [...issues].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
   const groups: { id: string; members: Issue[] }[] = [];
+  const bucket = new Map<string, number[]>(); // key => indices of groups
+  const bucketKey = (lat: number, lon: number) => `${lat.toFixed(3)}:${lon.toFixed(3)}`; // ~100m grid
 
   for (const issue of sorted) {
     let placed = false;
-    for (const g of groups) {
+    const keys = [
+      bucketKey(issue.latitude, issue.longitude),
+      bucketKey(issue.latitude + 0.001, issue.longitude),
+      bucketKey(issue.latitude - 0.001, issue.longitude),
+      bucketKey(issue.latitude, issue.longitude + 0.001),
+      bucketKey(issue.latitude, issue.longitude - 0.001),
+    ];
+
+    const candidateGroupIdxs = new Set<number>();
+    for (const k of keys) {
+      const arr = bucket.get(k);
+      if (arr) arr.forEach((idx) => candidateGroupIdxs.add(idx));
+    }
+
+    for (const idx of candidateGroupIdxs.size ? candidateGroupIdxs : [...groups.keys()]) {
+      const g = groups[idx as number];
+      if (!g) continue;
       const ref = g.members[0];
       const timeDiffH = Math.abs(new Date(issue.createdAt).getTime() - new Date(ref.createdAt).getTime()) / 3_600_000;
       const near = haversineKm({ lat: issue.latitude, lon: issue.longitude }, { lat: ref.latitude, lon: ref.longitude }) <= maxKm;
       const similar = issue.category === ref.category && jaccardSimilarity(issue.title + " " + issue.description, ref.title + " " + ref.description) >= textThreshold;
       if (near && similar && timeDiffH <= timeWindowHours) {
         g.members.push(issue);
+        const k = bucketKey(ref.latitude, ref.longitude);
+        const list = bucket.get(k) ?? [];
+        if (!list.includes(idx as number)) list.push(idx as number);
+        bucket.set(k, list);
         placed = true;
         break;
       }
     }
+
     if (!placed) {
-      groups.push({ id: crypto.randomUUID(), members: [issue] });
+      const id = crypto.randomUUID();
+      const newIdx = groups.push({ id, members: [issue] }) - 1;
+      const k = bucketKey(issue.latitude, issue.longitude);
+      const list = bucket.get(k) ?? [];
+      list.push(newIdx);
+      bucket.set(k, list);
     }
   }
 
-  // Merge groups: choose canonical = highest priority then most upvotes then newest
   const merged: Issue[] = [];
   for (const g of groups) {
     const canonical = [...g.members].sort((a, b) => {
-      if (a.priority !== b.priority) return a.priority - b.priority; // 1 high first
+      if (a.priority !== b.priority) return a.priority - b.priority;
       if (a.upvotes !== b.upvotes) return b.upvotes - a.upvotes;
       return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
     })[0];
@@ -111,7 +138,6 @@ export function detectAndMergeDuplicates(issues: Issue[], options?: { maxKm?: nu
       m.duplicateOf = m.id === canonical.id ? null : canonical.id;
     }
 
-    // Aggregate counts on canonical
     const totalUpvotes = g.members.reduce((sum, m) => sum + m.upvotes, 0);
     const latestUpdated = g.members.reduce((d, m) => (new Date(m.updatedAt) > new Date(d) ? m.updatedAt : d), canonical.updatedAt);
     merged.push({ ...canonical, upvotes: totalUpvotes, updatedAt: latestUpdated });
