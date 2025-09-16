@@ -42,7 +42,6 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
             </div>
             <div className="leading-tight">
               <div className="font-extrabold tracking-tight text-base">NIVARAN</div>
-              <div className="text-xs text-muted-foreground">Civic Issue Admin</div>
             </div>
           </Link>
         </SidebarHeader>
